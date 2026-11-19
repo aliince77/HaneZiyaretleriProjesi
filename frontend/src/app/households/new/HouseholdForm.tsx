@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 import HouseholdMap from "@/components/HouseholdMap";
 import type { Household, Personnel } from "@/lib/api";
+import { optimizeCameraOrGalleryPhotos } from "@/lib/imageCompression";
 import {
   createHouseholdAction,
   lookupHouseholdByTcAction,
@@ -146,13 +147,14 @@ export default function HouseholdForm({
     );
   }
 
-  function handleAddPhotos(event: React.ChangeEvent<HTMLInputElement>) {
+  async function handleAddPhotos(event: React.ChangeEvent<HTMLInputElement>) {
     const addedFiles = Array.from(event.currentTarget.files ?? []);
+    event.currentTarget.value = "";
     if (addedFiles.length === 0) {
       return;
     }
-    updateSelectedPhotos([...selectedPhotos, ...addedFiles]);
-    event.currentTarget.value = "";
+    const optimized = await optimizeCameraOrGalleryPhotos(addedFiles);
+    updateSelectedPhotos([...selectedPhotos, ...optimized]);
   }
 
   function handleRemovePhoto(indexToRemove: number) {

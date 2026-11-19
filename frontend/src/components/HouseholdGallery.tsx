@@ -18,6 +18,22 @@ import {
   type PhotoUploadActionState,
 } from "@/app/households/[id]/actions";
 import type { HouseholdPhoto } from "@/lib/api";
+import { optimizeCameraOrGalleryPhotos } from "@/lib/imageCompression";
+
+function normalizePhotoUrl(url: string): string {
+  if (!url) {
+    return "";
+  }
+  try {
+    const parsed = new URL(url);
+    if (parsed.pathname.startsWith("/media/")) {
+      return parsed.pathname;
+    }
+  } catch {
+    // Already a relative path
+  }
+  return url;
+}
 
 const photoTypeLabels: Record<string, string> = {
   dis: "Dış Cephe",
@@ -197,7 +213,7 @@ export default function HouseholdGallery({
                   className="relative block aspect-[4/3] w-full overflow-hidden rounded-xl bg-slate-100 text-left focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/30"
                 >
                   <Image
-                    src={photo.photo}
+                    src={normalizePhotoUrl(photo.photo)}
                     alt={`${householdName} - ${photoTypeLabels[photo.photo_type] ?? "Fotoğraf"}`}
                     fill
                     unoptimized
@@ -300,7 +316,7 @@ export default function HouseholdGallery({
 
             <div className="relative flex min-h-0 flex-1 items-center justify-center px-2 pb-3 sm:px-5">
               <Image
-                src={activePhoto.photo}
+                src={normalizePhotoUrl(activePhoto.photo)}
                 alt={`${householdName} - ${photoTypeLabels[activePhoto.photo_type] ?? "Fotoğraf"}`}
                 fill
                 priority
@@ -375,13 +391,14 @@ function PhotoUploadForm({ householdId }: { householdId: number }) {
     );
   }
 
-  function handleAddPhotos(event: React.ChangeEvent<HTMLInputElement>) {
+  async function handleAddPhotos(event: React.ChangeEvent<HTMLInputElement>) {
     const addedFiles = Array.from(event.currentTarget.files ?? []);
+    event.currentTarget.value = "";
     if (addedFiles.length === 0) {
       return;
     }
-    updateSelectedPhotos([...selectedPhotos, ...addedFiles]);
-    event.currentTarget.value = "";
+    const optimized = await optimizeCameraOrGalleryPhotos(addedFiles);
+    updateSelectedPhotos([...selectedPhotos, ...optimized]);
   }
 
   function handleRemovePhoto(indexToRemove: number) {
