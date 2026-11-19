@@ -145,10 +145,6 @@ class PersonnelAssignmentTests(TestCase):
         body = resp.json()
         self.assertEqual(body["ziyareti_yapan_personel"], p1.id)
         self.assertEqual(body["ziyareti_yapan_personel_adi"], "Mehmet Kaya")
-        self.assertEqual(
-            body["ziyareti_yapan_personel_unvan"],
-            "İnceleme Görevlisi",
-        )
         self.assertEqual(body["katilan_personel"], p2.id)
         self.assertEqual(body["katilan_personel_adi"], "Zeynep Çelik")
 

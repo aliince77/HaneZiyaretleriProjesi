@@ -36,7 +36,6 @@ export type Household = {
     longitude: string | null;
     ziyareti_yapan_personel: number | null;
     ziyareti_yapan_personel_adi: string | null;
-    ziyareti_yapan_personel_unvan: string | null;
     katilan_personel: number | null;
     katilan_personel_adi: string | null;
     photos: HouseholdPhoto[];
