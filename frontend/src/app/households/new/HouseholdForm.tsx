@@ -16,6 +16,39 @@ const MAX_TOTAL_PHOTO_SIZE = 20 * 1024 * 1024;
 const inputClassName =
   "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 disabled:cursor-not-allowed disabled:bg-slate-100";
 
+type SpeechRecognitionResult = {
+  isFinal: boolean;
+  0: { transcript: string };
+};
+
+type SpeechRecognitionEvent = {
+  resultIndex: number;
+  results: ArrayLike<SpeechRecognitionResult>;
+};
+
+type SpeechRecognitionErrorEvent = {
+  error: string;
+};
+
+type BrowserSpeechRecognition = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onstart: (() => void) | null;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+};
+
+type SpeechRecognitionConstructor = new () => BrowserSpeechRecognition;
+type SpeechRecognitionWindow = Window & {
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
+};
+
 export default function HouseholdForm({
   personnelList = [],
 }: {
@@ -28,6 +61,8 @@ export default function HouseholdForm({
   const [telefon, setTelefon] = useState("");
   const [adres, setAdres] = useState("");
   const [notlar, setNotlar] = useState("");
+  const [isListeningToNotes, setIsListeningToNotes] = useState(false);
+  const [speechMessage, setSpeechMessage] = useState("");
   const [ziyaretiYapanId, setZiyaretiYapanId] = useState("");
   const [katilanPersonelId, setKatilanPersonelId] = useState("");
 
@@ -47,6 +82,7 @@ export default function HouseholdForm({
   const [photoError, setPhotoError] = useState("");
   const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
   const filesInputRef = useRef<HTMLInputElement>(null);
+  const speechRecognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const [state, formAction, isPending] = useActionState(
     createHouseholdAction,
     initialState,
@@ -137,6 +173,10 @@ export default function HouseholdForm({
     input.files = dataTransfer.files;
   }, [selectedPhotos, state]);
 
+  useEffect(() => {
+    return () => speechRecognitionRef.current?.abort();
+  }, []);
+
   function updateSelectedPhotos(nextPhotos: File[]) {
     const totalSize = nextPhotos.reduce((total, file) => total + file.size, 0);
     setSelectedPhotos(nextPhotos);
@@ -196,6 +236,76 @@ export default function HouseholdForm({
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
+  }
+
+  function toggleNotesSpeech() {
+    if (isListeningToNotes) {
+      speechRecognitionRef.current?.stop();
+      return;
+    }
+
+    const speechWindow = window as SpeechRecognitionWindow;
+    const SpeechRecognition =
+      speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setSpeechMessage(
+        "Bu tarayıcı sesle yazmayı desteklemiyor. Telefon klavyesindeki mikrofonu kullanabilirsiniz.",
+      );
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "tr-TR";
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.onstart = () => {
+      setIsListeningToNotes(true);
+      setSpeechMessage("Dinleniyor… Konuşmayı bitirince durdurun.");
+    };
+    recognition.onresult = (event) => {
+      let transcript = "";
+      for (let index = event.resultIndex; index < event.results.length; index++) {
+        const result = event.results[index];
+        if (result.isFinal) {
+          transcript += result[0].transcript;
+        }
+      }
+
+      const finalTranscript = transcript.trim();
+      if (finalTranscript) {
+        setNotlar((current) => {
+          const separator = current && !/\s$/.test(current) ? " " : "";
+          return `${current}${separator}${finalTranscript}`;
+        });
+      }
+    };
+    recognition.onerror = (event) => {
+      speechRecognitionRef.current = null;
+      setIsListeningToNotes(false);
+      setSpeechMessage(getSpeechErrorMessage(event.error));
+    };
+    recognition.onend = () => {
+      if (speechRecognitionRef.current === recognition) {
+        speechRecognitionRef.current = null;
+        setIsListeningToNotes(false);
+        setSpeechMessage("Sesle giriş durduruldu.");
+      }
+    };
+
+    speechRecognitionRef.current = recognition;
+    setIsListeningToNotes(true);
+    setSpeechMessage("Mikrofon başlatılıyor…");
+    try {
+      recognition.start();
+    } catch (error) {
+      speechRecognitionRef.current = null;
+      setIsListeningToNotes(false);
+      setSpeechMessage(
+        error instanceof Error
+          ? `Sesle giriş başlatılamadı: ${error.message}`
+          : "Sesle giriş başlatılamadı.",
+      );
+    }
   }
 
   return (
@@ -502,12 +612,27 @@ export default function HouseholdForm({
         </div>
 
         <div>
-          <label
-            htmlFor="notlar"
-            className="mb-2 block text-sm font-medium text-slate-700"
-          >
-            Notlar
-          </label>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <label
+              htmlFor="notlar"
+              className="block text-sm font-medium text-slate-700"
+            >
+              Notlar
+            </label>
+            <button
+              type="button"
+              onClick={toggleNotesSpeech}
+              aria-pressed={isListeningToNotes}
+              className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/15 ${
+                isListeningToNotes
+                  ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+              }`}
+            >
+              <MicrophoneIcon className="size-4" />
+              {isListeningToNotes ? "Durdur" : "Mikrofonla Yaz"}
+            </button>
+          </div>
           <textarea
             id="notlar"
             name="notlar"
@@ -517,6 +642,20 @@ export default function HouseholdForm({
             rows={3}
             className={`${inputClassName} min-h-28 resize-y`}
           />
+          {speechMessage && (
+            <p
+              role="status"
+              aria-live="polite"
+              className={`mt-2 text-xs ${
+                isListeningToNotes ? "text-blue-700" : "text-slate-500"
+              }`}
+            >
+              {speechMessage}
+            </p>
+          )}
+          <p className="mt-1.5 text-xs text-slate-500">
+            Ses tanıma, kullandığınız tarayıcının hizmetinde işlenebilir.
+          </p>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -817,4 +956,52 @@ function formatVisitDate(value: string) {
     timeStyle: "short",
     timeZone: "Europe/Istanbul",
   }).format(date);
+}
+
+function getSpeechErrorMessage(error: string) {
+  switch (error) {
+    case "not-allowed":
+    case "service-not-allowed":
+      return "Mikrofon izni verilmedi. Tarayıcı ayarlarından bu siteye mikrofon izni verin.";
+    case "audio-capture":
+      return "Mikrofon bulunamadı veya başka bir uygulama tarafından kullanılıyor.";
+    case "no-speech":
+      return "Konuşma algılanmadı. Tekrar deneyin.";
+    case "network":
+      return "Ses tanıma servisine bağlanılamadı. İnternet bağlantınızı kontrol edin.";
+    case "language-not-supported":
+      return "Türkçe ses tanıma bu tarayıcıda desteklenmiyor.";
+    case "aborted":
+      return "Sesle giriş durduruldu.";
+    default:
+      return `Sesle giriş sırasında hata oluştu (${error}).`;
+  }
+}
+
+function MicrophoneIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+    >
+      <rect
+        x="9"
+        y="2.5"
+        width="6"
+        height="12"
+        rx="3"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M5 11a7 7 0 0 0 14 0M12 18v4m-4 0h8"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 }
