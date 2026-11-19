@@ -146,6 +146,10 @@ STATIC_URL = 'static/'
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(os.environ.get("SYDV_MEDIA_ROOT", str(BASE_DIR / "media")))
+SYDV_SERVE_MEDIA = (
+    os.environ.get("SYDV_SERVE_MEDIA", "").lower() in {"1", "true", "yes"}
+    and bool(os.environ.get("SYDV_MEDIA_ROOT"))
+)
 
 CORS_ALLOW_ALL_ORIGINS = (
     os.environ.get("SYDV_CORS_ALLOW_ALL_ORIGINS", "true").lower()

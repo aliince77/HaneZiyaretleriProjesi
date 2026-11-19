@@ -53,6 +53,30 @@ class HouseholdPhotoDeleteTests(TestCase):
                 self.assertFalse(Path(file_path).exists())
 
 
+class MediaServingTests(TestCase):
+    def test_media_requires_explicit_opt_in_when_debug_is_disabled(self):
+        with TemporaryDirectory() as media_root:
+            media_file = Path(media_root, "test.txt")
+            media_file.write_text("synthetic test media", encoding="utf-8")
+
+            with override_settings(
+                DEBUG=False,
+                SYDV_SERVE_MEDIA=False,
+                MEDIA_ROOT=media_root,
+            ):
+                response = self.client.get("/media/test.txt")
+                self.assertEqual(response.status_code, 404)
+
+            with override_settings(
+                DEBUG=False,
+                SYDV_SERVE_MEDIA=True,
+                MEDIA_ROOT=media_root,
+            ):
+                response = self.client.get("/media/test.txt")
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(b"".join(response.streaming_content), b"synthetic test media")
+
+
 class HouseholdIdentifierTests(TestCase):
     def test_api_preserves_identifier_formatting(self):
         response = self.client.post(

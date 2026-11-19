@@ -10,6 +10,7 @@ set "STAGING_DIR=%BACKEND_DIR%\staging_data"
 
 set "SYDV_DATABASE_PATH=%STAGING_DIR%\db.sqlite3"
 set "SYDV_MEDIA_ROOT=%STAGING_DIR%\media"
+set "SYDV_SERVE_MEDIA=true"
 set "SYDV_DEBUG=false"
 set "SYDV_ALLOWED_HOSTS=127.0.0.1,localhost"
 set "SYDV_CORS_ALLOW_ALL_ORIGINS=false"

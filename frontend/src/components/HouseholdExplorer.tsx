@@ -714,24 +714,20 @@ function HouseholdCard({
   onReportHousehold: (tcNo: string) => void;
 }) {
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md sm:p-6">
-      <div className="flex items-start gap-4">
-        <Link
-          href={`/households/${household.id}`}
-          aria-label={`${household.ad_soyad} detaylarını görüntüle`}
-          className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-sm font-bold text-blue-700 transition hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/20"
-        >
+    <article className="relative rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md sm:p-6">
+      <Link
+        href={`/households/${household.id}`}
+        aria-label={`${household.ad_soyad} ziyaret detaylarını görüntüle`}
+        className="absolute inset-0 z-0 rounded-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-blue-500/40"
+      />
+      <div className="pointer-events-none relative z-10 flex items-start gap-4">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-sm font-bold text-blue-700">
           {getInitials(household.ad_soyad)}
-        </Link>
+        </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="break-words font-semibold">
-              <Link
-                href={`/households/${household.id}`}
-                className="text-slate-900 transition hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              >
-                {household.ad_soyad}
-              </Link>
+            <h3 className="break-words font-semibold text-slate-900">
+              {household.ad_soyad}
             </h3>
             <span className="text-xs text-slate-400">
               {formatDate(household.created_at)}
@@ -790,7 +786,7 @@ function HouseholdCard({
                 href={`https://www.google.com/maps?q=${household.latitude},${household.longitude}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:underline"
+                className="pointer-events-auto inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:underline"
               >
                 <MapPinIcon className="size-3.5 shrink-0" />
                 Haritada Gör
@@ -799,7 +795,7 @@ function HouseholdCard({
             <button
               type="button"
               onClick={() => onReportHousehold(household.tc_no)}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:underline"
+              className="pointer-events-auto inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:underline"
             >
               Bu Hanenin Ziyaretlerini Raporla ({totalVisitsForTc})
             </button>
