@@ -28,3 +28,4 @@ frontend/.env*
 .DS_Store
 Thumbs.db
 *.log
+cloudflared.exe

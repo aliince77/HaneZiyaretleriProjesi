@@ -4,9 +4,15 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  allowedDevOrigins: ["*.trycloudflare.com"],
   experimental: {
     serverActions: {
       bodySizeLimit: "25mb",
+      allowedOrigins: [
+        "*.trycloudflare.com",
+        "localhost:3000",
+        "127.0.0.1:3000",
+      ],
     },
   },
   async rewrites() {
