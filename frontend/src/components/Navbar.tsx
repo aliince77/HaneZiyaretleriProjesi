@@ -36,6 +36,11 @@ export default function Navbar() {
         </Link>
 
         <div className="flex items-center gap-2">
+          {process.env.NEXT_PUBLIC_SAHA_TEST === "true" && (
+            <span className="hidden rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-amber-800 sm:inline-flex">
+              Saha Testi · Sentetik Veri
+            </span>
+          )}
           <Link
             href="/personnel"
             className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/20 sm:text-sm"

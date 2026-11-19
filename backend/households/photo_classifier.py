@@ -3,11 +3,13 @@ import io
 import json
 import math
 import os
+import threading
 import urllib.error
 import urllib.request
 from pathlib import Path
 
 from django.conf import settings
+from django.db import close_old_connections
 from PIL import Image, ImageStat
 
 VALID_PHOTO_TYPES = {
@@ -30,14 +32,17 @@ FILENAME_KEYWORDS = {
 }
 
 
-def classify_household_photo(image_source, filename: str = "") -> str:
+def classify_household_photo(
+    image_source,
+    filename: str = "",
+    use_cloud: bool = False,
+) -> str:
     """
     Classifies a household visit photo into one of:
     'dis', 'salon', 'oturma_odasi', 'mutfak', 'oda', 'banyo', 'diger'.
 
-    1. Checks if GEMINI_API_KEY is configured and uses Gemini Vision AI if available.
-    2. Checks filename keywords if present.
-    3. Falls back to local Pillow visual scene/color/region analysis.
+    When use_cloud=False (default during upload), returns the instant (~5ms)
+    local classification so uploads never block on external network calls.
     """
     try:
         image_bytes = _read_image_bytes(image_source)
@@ -47,28 +52,66 @@ def classify_household_photo(image_source, filename: str = "") -> str:
     if not image_bytes:
         return "diger"
 
-    # 1. Try Gemini Vision API if GEMINI_API_KEY is configured
-    api_key = (
-        getattr(settings, "GEMINI_API_KEY", None)
-        or os.environ.get("GEMINI_API_KEY", "")
-    ).strip()
-    if api_key:
-        gemini_label = _classify_with_gemini(image_bytes, api_key)
-        if gemini_label in VALID_PHOTO_TYPES:
-            return gemini_label
+    if use_cloud:
+        api_key = (
+            getattr(settings, "GEMINI_API_KEY", None)
+            or os.environ.get("GEMINI_API_KEY", "")
+        ).strip()
+        if api_key:
+            gemini_label = _classify_with_gemini(image_bytes, api_key)
+            if gemini_label in VALID_PHOTO_TYPES:
+                return gemini_label
 
-    # 2. Check filename hints if the file has a descriptive name
+    # Check filename hints if the file has a descriptive name
     lower_name = Path(filename or "").stem.lower()
     if lower_name:
         for photo_type, keywords in FILENAME_KEYWORDS.items():
             if any(kw in lower_name for kw in keywords):
                 return photo_type
 
-    # 3. Local visual analysis using Pillow
+    # Instant local visual analysis using Pillow (~5ms)
     try:
         return _classify_locally_with_pillow(image_bytes)
     except Exception:
         return "diger"
+
+
+def refine_photo_label_in_background(photo_id: int) -> None:
+    """
+    Asynchronously refines a saved HouseholdPhoto's label using Gemini Vision API
+    in a background thread if GEMINI_API_KEY is configured, without slowing down
+    the HTTP upload response.
+    """
+    api_key = (
+        getattr(settings, "GEMINI_API_KEY", None)
+        or os.environ.get("GEMINI_API_KEY", "")
+    ).strip()
+    if not api_key:
+        return
+
+    def _worker():
+        try:
+            close_old_connections()
+            from .models import HouseholdPhoto
+
+            photo_obj = HouseholdPhoto.objects.filter(pk=photo_id).first()
+            if not photo_obj or not photo_obj.photo:
+                return
+            image_bytes = Path(photo_obj.photo.path).read_bytes()
+            gemini_label = _classify_with_gemini(image_bytes, api_key)
+            if (
+                gemini_label in VALID_PHOTO_TYPES
+                and photo_obj.photo_type != gemini_label
+            ):
+                HouseholdPhoto.objects.filter(pk=photo_id).update(
+                    photo_type=gemini_label
+                )
+        except Exception:
+            pass
+        finally:
+            close_old_connections()
+
+    threading.Thread(target=_worker, daemon=True).start()
 
 
 def _read_image_bytes(image_source) -> bytes:

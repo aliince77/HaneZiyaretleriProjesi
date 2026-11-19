@@ -2,14 +2,25 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
-  allowedDevOrigins: ["*.trycloudflare.com"],
+  distDir: process.env.SYDV_NEXT_DIST_DIR ?? ".next",
+  allowedDevOrigins: [
+    "*.trycloudflare.com",
+    "*.lhr.life",
+    "*.localhost.run",
+    "*.pinggy.link",
+    "*.free.pinggy.link",
+    "*.ngrok-free.app",
+  ],
   experimental: {
     serverActions: {
       bodySizeLimit: "25mb",
       allowedOrigins: [
         "*.trycloudflare.com",
+        "*.lhr.life",
+        "*.localhost.run",
+        "*.pinggy.link",
+        "*.free.pinggy.link",
+        "*.ngrok-free.app",
         "localhost:3000",
         "127.0.0.1:3000",
       ],

@@ -233,7 +233,24 @@ html[data-theme="dark"] .print-report-sheet .text-slate-600 {
 }
 
 @media print {
-  body > nav,
+  body *:not(:has(.print-report-sheet)):not(.print-report-sheet):not(.print-report-sheet *) {
+    display: none !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .print-modal-root {
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  .print-report-sheet,
+  .print-report-sheet * {
+    visibility: visible !important;
+  }
+
   .no-print {
     display: none !important;
   }
@@ -256,9 +273,15 @@ html[data-theme="dark"] .print-report-sheet .text-slate-600 {
   }
 
   .print-report-sheet {
+    position: static !important;
+    width: 100% !important;
     max-width: none !important;
     box-shadow: none !important;
     border-radius: 0 !important;
     padding: 0 !important;
+  }
+
+  .print-report-sheet .overflow-x-auto {
+    overflow: visible !important;
   }
 }

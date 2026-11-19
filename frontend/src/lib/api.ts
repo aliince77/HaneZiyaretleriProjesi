@@ -36,6 +36,7 @@ export type Household = {
     longitude: string | null;
     ziyareti_yapan_personel: number | null;
     ziyareti_yapan_personel_adi: string | null;
+    ziyareti_yapan_personel_unvan: string | null;
     katilan_personel: number | null;
     katilan_personel_adi: string | null;
     photos: HouseholdPhoto[];
@@ -120,7 +121,8 @@ export async function getHouseholds() {
         throw new Error(`Failed to load households: ${response.status} ${response.statusText}`);
     }
 
-    return response.json() as Promise<Household[]>;
+    const households = await response.json() as Household[];
+    return households.map(normalizeHouseholdPhotoUrls);
 }
 
 export async function getHousehold(id: number) {
@@ -132,7 +134,8 @@ export async function getHousehold(id: number) {
         throw new Error(`Failed to load household: ${response.status} ${response.statusText}`);
     }
 
-    return response.json() as Promise<Household>;
+    const household = await response.json() as Household;
+    return normalizeHouseholdPhotoUrls(household);
 }
 
 export async function createHousehold(household: HouseholdInput) {
@@ -270,7 +273,25 @@ export async function lookupHouseholdByTc(tcNo: string) {
         );
     }
 
-    return response.json() as Promise<HouseholdLookupResult>;
+    const result = await response.json() as HouseholdLookupResult;
+    return {
+        ...result,
+        previous_visits: result.previous_visits.map(normalizeHouseholdPhotoUrls),
+    };
+}
+
+function normalizeHouseholdPhotoUrls(household: Household): Household {
+    const apiBase = process.env.API_BASE_URL ?? 'http://127.0.0.1:8000';
+    return {
+        ...household,
+        photos: household.photos.map((photo) => {
+            const url = new URL(photo.photo, apiBase);
+            return {
+                ...photo,
+                photo: `${url.pathname}${url.search}`,
+            };
+        }),
+    };
 }
 
 export async function getRegisteredHouseholdStats(): Promise<RegisteredHouseholdStats> {

@@ -45,6 +45,11 @@ class HouseholdSerializer(serializers.ModelSerializer):
         read_only=True,
         default=None,
     )
+    ziyareti_yapan_personel_unvan = serializers.CharField(
+        source="ziyareti_yapan_personel.unvan",
+        read_only=True,
+        default=None,
+    )
     katilan_personel_adi = serializers.CharField(
         source="katilan_personel.ad_soyad",
         read_only=True,
@@ -67,6 +72,7 @@ class HouseholdSerializer(serializers.ModelSerializer):
             "longitude",
             "ziyareti_yapan_personel",
             "ziyareti_yapan_personel_adi",
+            "ziyareti_yapan_personel_unvan",
             "katilan_personel",
             "katilan_personel_adi",
             "photos"

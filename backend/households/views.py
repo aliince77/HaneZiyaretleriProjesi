@@ -6,7 +6,11 @@ from rest_framework.response import Response
 
 from .excel_importer import import_registered_households_from_file
 from .models import Household, HouseholdPhoto, Personnel, RegisteredHousehold
-from .photo_classifier import VALID_PHOTO_TYPES, classify_household_photo
+from .photo_classifier import (
+    VALID_PHOTO_TYPES,
+    classify_household_photo,
+    refine_photo_label_in_background,
+)
 from .serializers import (
     HouseholdPhotoSerializer,
     HouseholdSerializer,
@@ -178,10 +182,17 @@ class HouseholdPhotoViewSet(viewsets.ModelViewSet):
             detected_type = classify_household_photo(
                 uploaded_photo,
                 filename=getattr(uploaded_photo, "name", ""),
+                use_cloud=False,
             )
-            if detected_type in VALID_PHOTO_TYPES:
-                serializer.save(photo_type=detected_type)
-                return
+            instance = serializer.save(
+                photo_type=(
+                    detected_type
+                    if detected_type in VALID_PHOTO_TYPES
+                    else "diger"
+                )
+            )
+            refine_photo_label_in_background(instance.id)
+            return
 
         serializer.save()
 

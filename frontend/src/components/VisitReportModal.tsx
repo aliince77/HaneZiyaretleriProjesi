@@ -299,6 +299,22 @@ export default function VisitReportModal({
 
   const uniqueHouseholdCount = new Set(visits.map((v) => v.tc_no)).size;
   const totalPhotoCount = visits.reduce((sum, v) => sum + v.photos.length, 0);
+  const reportPersonnelById = new Map<
+    number,
+    { ad_soyad: string; unvan: string | null }
+  >();
+  for (const visit of visits) {
+    if (
+      visit.ziyareti_yapan_personel !== null &&
+      visit.ziyareti_yapan_personel_adi
+    ) {
+      reportPersonnelById.set(visit.ziyareti_yapan_personel, {
+        ad_soyad: visit.ziyareti_yapan_personel_adi,
+        unvan: visit.ziyareti_yapan_personel_unvan,
+      });
+    }
+  }
+  const reportPersonnel = Array.from(reportPersonnelById.entries());
   const generatedAt = formatReportDateTime(new Date().toISOString());
 
   return (
@@ -539,10 +555,23 @@ export default function VisitReportModal({
           <div className="mt-10 grid grid-cols-2 gap-8 pt-4 text-center text-xs text-slate-800">
             <div>
               <p className="font-bold">Raporu Düzenleyen / İnceleme Görevlisi</p>
+              {reportPersonnel.length > 0 ? (
+                reportPersonnel.map(([id, personnel]) => (
+                  <div key={id} className="mt-2">
+                    <p className="font-semibold">{personnel.ad_soyad}</p>
+                    {personnel.unvan && (
+                      <p className="text-slate-600">{personnel.unvan}</p>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <p className="mt-2 text-slate-500">Belirtilmedi</p>
+              )}
               <p className="mt-8 text-slate-500">İmza</p>
             </div>
             <div>
               <p className="font-bold">Vakıf Müdürü / Onay</p>
+              <p className="mt-2 font-semibold">N. Batuhan MAVİ</p>
               <p className="mt-8 text-slate-500">İmza</p>
             </div>
           </div>

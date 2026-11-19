@@ -25,19 +25,31 @@ if _env_path.exists():
             os.environ.setdefault(_key.strip(), _val.strip().strip('"').strip("'"))
 
 # Optional Google Gemini API Key for cloud AI room classification
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+DISABLE_GEMINI = os.environ.get("SYDV_DISABLE_GEMINI", "").lower() in {
+    "1",
+    "true",
+    "yes",
+}
+GEMINI_API_KEY = "" if DISABLE_GEMINI else os.environ.get("GEMINI_API_KEY", "")
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-w0ux3-$a*vb*$^y^-ya&%*06s_h@(giw8gis&ahoxzdls)2@wu'
+SECRET_KEY = os.environ.get(
+    "SYDV_SECRET_KEY",
+    'django-insecure-w0ux3-$a*vb*$^y^-ya&%*06s_h@(giw8gis&ahoxzdls)2@wu',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("SYDV_DEBUG", "true").lower() in {"1", "true", "yes"}
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get("SYDV_ALLOWED_HOSTS", "*").split(",")
+    if host.strip()
+]
 
 
 # Application definition
@@ -91,7 +103,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': os.environ.get("SYDV_DATABASE_PATH", str(BASE_DIR / "db.sqlite3")),
     }
 }
 
@@ -133,9 +145,12 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_ROOT = Path(os.environ.get("SYDV_MEDIA_ROOT", str(BASE_DIR / "media")))
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = (
+    os.environ.get("SYDV_CORS_ALLOW_ALL_ORIGINS", "true").lower()
+    in {"1", "true", "yes"}
+)
 
 
 # Email

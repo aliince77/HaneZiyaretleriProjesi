@@ -197,6 +197,19 @@ npm run dev
 ```
 *Frontend varsayılan olarak `http://localhost:3000` adresinde çalışır.*
 
+### Geçici Mobil Saha Testi (Sentetik Veri)
+
+Windows'ta proje kökündeki `saha-test-baslat.bat` dosyasını çalıştırın. Bu
+başlatıcı, mevcut `backend/db.sqlite3` ve `backend/media` yerine
+`backend/staging_data/` altında ayrı bir test veritabanı ve medya alanı
+kullanır; yalnızca sentetik hane/personel kayıtları ekler. Next.js production
+modunda açılır ve geçici bir Cloudflare HTTPS Quick Tunnel adresi üretir.
+
+Bu tünel halka açık olduğundan yalnızca sentetik bilgiler ve kişisel olmayan
+test fotoğrafları kullanın. Gerçek hane, kişi, adres, telefon veya ziyaret
+fotoğraflarını girmeyin. Tüneli kapatmak için BAT penceresinde `Ctrl+C` yapın;
+backend ve frontend pencerelerini de kapatın.
+
 ---
 
 ## 📊 Excel'den Toplu Aktif Hane Yükleme
